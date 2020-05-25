@@ -20,7 +20,6 @@ cv_covid_positivo = cv %>% filter(RESULTADO == 1)
 h = sample(1:num_negativo,num_positivos,replace = FALSE) #generamos numeros aleatorios
 cv_int = cv_covid_negativo %>% slice(h)
 cv <- bind_rows(cv_int,cv_covid_positivo)
-cv
 
 str(cv)
 cv$ORIGEN <- as.factor(cv$ORIGEN)
@@ -56,27 +55,33 @@ cv$FECHA_SINTOMAS <- as.Date(cv$FECHA_SINTOMAS)
 cv$FECHA_ACTUALIZACION <- as.Date(cv$FECHA_ACTUALIZACION)
 attach(cv)
 str(cv)
-index <- sample(1:57261, 28630, replace = F)
+summary(cv$RESULTADO)
+index <- sample(1:dim(cv), (dim(cv)/2), replace = F)
 Train <- cv[index,]
 Test <- cv[-index,]
 
 
 ####
-glm1<- glm(RESULTADO~ EDAD+ENTIDAD_RES+SEXO+NEUMONIA+DIABETES+ASMA+EPOC+OBESIDAD+HIPERTENSION+CARDIOVASCULAR,family="binomial" ,data = Train)
+glm1<- glm(RESULTADO~ EDAD+ENTIDAD_RES+SEXO+NEUMONIA+DIABETES+ASMA+EPOC+OTRO_CASO+OBESIDAD+HIPERTENSION+CARDIOVASCULAR+INTUBADO,family="binomial" ,data = Train)
 summary(glm1)
 yhat2<- predict(glm1, newdata=Test,type="response")
-yr=Test$RESULTADO
-y=as.integer(yhat2>0.4)
-y=ifelse(y =="0",1,2)
-y
-summary(as.factor(y))
-table(y, Test$RESULTADO)
-mean(y == Test$RESULTADO)
 
-hist(as.numeric(y),col = rgb(0,1,0,.5),main="reales vs predichos")
-hist(as.numeric(yr),add=T,col = rgb(1,0,0,.5))
-
-
+mejor_y=0
+for(i in seq(0.1,1,by=0.01)){
+  y=as.integer(yhat2>i)
+  y=ifelse(y =="0",1,2)
+  a=mean(y == Test$RESULTADO)
+  if(i==0.1){
+    mejor_y=a
+    b=i
+  }
+  if(mejor_y<a){
+    mejor_y=a
+    b=i
+  }
+}
+b
+mejor_y
 
 
 #################### k-folds
@@ -84,7 +89,7 @@ hist(as.numeric(yr),add=T,col = rgb(1,0,0,.5))
 
 
 n <- dim(cv)[1]
-k <- 20
+k <- 10
 
 
 folds <- cut(1:n,k,labels = F)
@@ -93,11 +98,11 @@ for (i in 1:k){
   index = folds == i
   test = cv[index,]
   train = cv[-index,]
-  reg = glm.c <-glm(RESULTADO~ EDAD+ENTIDAD_RES+SEXO+NEUMONIA+DIABETES+ASMA+EPOC+OBESIDAD+HIPERTENSION+CARDIOVASCULAR,family="binomial" ,data = train)
+  reg = glm.c <-glm(RESULTADO~ EDAD+ENTIDAD_RES+SEXO+NEUMONIA+DIABETES+ASMA+EPOC+OTRO_CASO+OBESIDAD+HIPERTENSION+CARDIOVASCULAR+INTUBADO,family="binomial" ,data = train)
   
   y = test$RESULTADO
   yhat = predict(reg,test,type = "response")
-  res = ifelse(yhat >0.5,1,0) #Si yhat > 0.5 entonces 1, si no 0
+  res = ifelse(yhat >0.47,2,1) #Si yhat > 0.5 entonces 1, si no 0
   
   clasiferror <- mean(y != res)
   
@@ -107,17 +112,4 @@ mean(acc) #Presicion promedio del modelo
 
 cat("Average Mean Square Error from kCV = ",round(mean(acc),1), "\n")
 hist(acc, main = paste("Accuracy using ", k, "- fold CV"))
-##########
-cross=cv.glm(data=cv,glmfit = glm(RESULTADO~ EDAD+ENTIDAD_RES+SEXO+NEUMONIA+DIABETES+ASMA+EPOC+OBESIDAD+HIPERTENSION+CARDIOVASCULAR,family="binomial" ),K=20)
-
-####
-lda1<- lda(RESULTADO~EDAD+ ENTIDAD_RES+SEXO+NEUMONIA+DIABETES+ASMA+EPOC+OBESIDAD+HIPERTENSION+CARDIOVASCULAR,data = Train)
-summary(lda1)
-yhat1 <-predict(lda1, Test)$class
-yhat1
-table(yhat1, Test$RESULTADO)
-mean(yhat1 == Test$RESULTADO)
-
-hist(as.numeric(yhat1),col = rgb(0,1,0,.5),main="reales vs predichos")
-hist(as.numeric(yr),add=T,col = rgb(1,0,0,.5))
-
+boxplot(acc)

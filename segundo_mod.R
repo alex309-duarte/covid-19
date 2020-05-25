@@ -55,39 +55,44 @@ cv$FECHA_SINTOMAS <- as.Date(cv$FECHA_SINTOMAS)
 cv$FECHA_ACTUALIZACION <- as.Date(cv$FECHA_ACTUALIZACION)
 attach(cv)
 str(cv)
-index <- sample(1:5370, 2685, replace = F)
+summary(UCI)
+index <- sample(1:dim(cv), (dim(cv)/2), replace = F)
 Train <- cv[index,]
 Test <- cv[-index,]
 
-lda1<- lda(UCI~ SEXO+NEUMONIA+OBESIDAD+HIPERTENSION+EDAD,family="binomial" ,data = Train)
-summary(lda1)
-  yhat1 <- as.integer(predict(lda1, Test)$class,type="response")
-  yhat1
-  y1=Test$UCI
-  str(yhat1)
-table(yhat1, Test$UCI)
-
-mean(yhat1 == Test$UCI)
-
-hist(yhat1,col = rgb(0,1,0,.5),main="reales vs predichos-lda-UCI")
-hist(as.numeric(y1),add=T,col = rgb(1,0,0,.5))
 ####
-glm1<- glm(UCI~ SEXO+NEUMONIA+OBESIDAD+EDAD+ASMA,family="binomial" ,data = Train)
+glm1<- glm(UCI~ SEXO+EDAD+NEUMONIA+OBESIDAD+DIABETES+INTUBADO,family="binomial" ,data = Train)
 summary(glm1)
 yhat2<- predict(glm1, Test,type="response")
 
-y=as.integer(yhat2>0.7)
-y
+y=as.integer(yhat2>0.87)
 y=ifelse(y =="0",1,2)
 table(y, Test$UCI)
 mean(y == Test$UCI)
+
+mejor_y=0
+for(i in seq(0.1,1,by=0.01)){
+  y=as.integer(yhat2>i)
+  y=ifelse(y =="0",1,2)
+  a=mean(y == Test$UCI)
+  if(i==0.1){
+    mejor_y=a
+    b=i
+  }
+  if(mejor_y<a){
+    mejor_y=a
+    b=i
+  }
+}
+b
+mejor_y
 
 
 hist(as.numeric(y),col = rgb(0,1,0,.5),main="reales vs predichos-log-UCI")
 hist(as.numeric(y1),add=T,col = rgb(1,0,0,.5))
 #################### k-folds
 n <- dim(cv)[1]
-k <- 20
+k <- 10
 
 
 folds <- cut(1:n,k,labels = F)
@@ -96,11 +101,10 @@ for (i in 1:k){
   index = folds == i
   test = cv[index,]
   train = cv[-index,]
-  reg = glm.c <-glm(UCI~ ENTIDAD_RES+SEXO+NEUMONIA+OBESIDAD+HIPERTENSION+EDAD,family="binomial" ,data = train)
-  
+  reg = glm.c =glm(UCI~ SEXO+EDAD+NEUMONIA+OBESIDAD+DIABETES+INTUBADO,family="binomial" ,data = train)
   y = test$UCI
   yhat = predict(reg,test,type = "response")
-  res = ifelse(yhat >0.5,1,0) #Si yhat > 0.5 entonces 1, si no 0
+  res = ifelse(yhat >0.52,2,1) #Si yhat > 0.5 entonces 1, si no 0
   
   clasiferror <- mean(y != res)
   
@@ -110,4 +114,5 @@ mean(acc) #Presicion promedio del modelo
 
 cat("Average Mean Square Error from kCV = ",round(mean(acc),1), "\n")
 hist(acc, main = paste("Accuracy using ", k, "- fold CV"))
+boxplot(acc,main="precisión")
 ###########
