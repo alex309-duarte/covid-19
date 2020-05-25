@@ -3,9 +3,9 @@
 #setwd('Covid')
 suppressMessages(library(dplyr))
 suppressMessages(library(verification))
+cv=read.csv("C:/Users/sole-/Downloads/covid-19-master/covid-19-master/covid.csv",header=T)
 
-
-cv=read.csv("covid.csv",header=T)
+#cv=read.csv("covid.csv",header=T)
 cv <- na.omit(cv)
 cv=cv%>%tbl_df()
 cv=cv%>%filter(as.numeric(RESULTADO)<=2)
@@ -65,24 +65,32 @@ Test <- cv[-index,]
 glm1<- glm(RESULTADO~ EDAD+ENTIDAD_RES+SEXO+NEUMONIA+DIABETES+ASMA+EPOC+OTRO_CASO+OBESIDAD+HIPERTENSION+CARDIOVASCULAR+INTUBADO,family="binomial" ,data = Train)
 summary(glm1)
 yhat2<- predict(glm1, newdata=Test,type="response")
-
-mejor_y=0
+#para elegir la mejor y evaluamos los posibles valores, desde 0.1 hasta 1 y vemos cual es el mean menor 
+#se repite 91 veces 
+size=1
+val_mean <- rep(0,91)
 for(i in seq(0.1,1,by=0.01)){
   y=as.integer(yhat2>i)
   y=ifelse(y =="0",1,2)
-  a=mean(y == Test$RESULTADO)
-  if(i==0.1){
-    mejor_y=a
-    b=i
-  }
-  if(mejor_y<a){
-    mejor_y=a
-    b=i
-  }
+  val_mean[size]=mean(y == Test$RESULTADO)
+  size=size+1
 }
+size=2
+lugar=1
+mejor=val_mean[lugar]
+for(i in seq(0.11,1,by=0.01)){
+  if(val_mean[size]>mejor){
+    mejor=val_mean[size]
+    b=i
+    lugar=size
+  }
+  size=size+1
+}
+y=seq(0.1,1,by=0.01)
+plot(y,val_mean,xlab = "iterador", ylab = "valor mean")
+points(b, val_mean[lugar],  col = "orange", lwd = 10)
 b
-mejor_y
-
+val_mean[lugar]
 
 #################### k-folds
 

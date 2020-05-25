@@ -1,9 +1,10 @@
-setwd('6to Semestre')
-setwd('Temas Selectos de Matemáticas')
-setwd('Covid')
+#setwd('6to Semestre')
+#setwd('Temas Selectos de Matemáticas')
+#setwd('Covid')
 suppressMessages(library(dplyr))
 suppressMessages(library(verification))
-cv=read.csv("covid.csv",header=T)
+#cv=read.csv("covid.csv",header=T)
+cv=read.csv("C:/Users/sole-/Downloads/covid-19-master/covid-19-master/covid.csv",header=T)
 cv <- na.omit(cv)
 cv=cv%>%tbl_df()
 cv=cv%>%filter(as.numeric(RESULTADO)<=1)
@@ -60,23 +61,32 @@ Test <- cv[-index,]
   glm1<- glm(FECHA_DEF~ SEXO+NEUMONIA+OBESIDAD+HIPERTENSION+DIABETES+EDAD+INTUBADO+UCI+EPOC+OTRO_CASO+OTRA_CON,family="binomial" ,data = Train)
   summary(glm1)
   yhat2<- predict(glm1, Test,type="response")
-  
-    mejor_y=0
-    
-    for(i in seq(0.1,1,by=0.01)){
-      y=as.integer(yhat2>i)
-      a=mean(y == Test$FECHA_DEF)
-      if(i==0.1){
-        mejor_y=a
-        b=i
-      }
-      if(mejor_y<a){
-        mejor_y=a
-        b=i
-      }
+  #para elegir la mejor y evaluamos los posibles valores, desde 0.1 hasta 1 y vemos cual es el mean menor 
+  #se repite 91 veces 
+  size=1
+  val_mean <- rep(0,91)
+  for(i in seq(0.1,1,by=0.01)){
+    y=as.integer(yhat2>i)
+    y=ifelse(y =="0",1,2)
+    val_mean[size]=mean(y == Test$RESULTADO)
+    size=size+1
+  }
+  size=2
+  lugar=1
+  mejor=val_mean[lugar]
+  for(i in seq(0.11,1,by=0.01)){
+    if(val_mean[size]>mejor){
+      mejor=val_mean[size]
+      b=i
+      lugar=size
     }
-    b
-  mejor_y
+    size=size+1
+  }
+  y=seq(0.1,1,by=0.01)
+  plot(y,val_mean,xlab = "iterador", ylab = "valor mean")
+  points(b, val_mean[lugar],  col = "orange", lwd = 10)
+  b
+  val_mean[lugar]
 
 #################### k-folds
 n <- dim(cv)[1]
