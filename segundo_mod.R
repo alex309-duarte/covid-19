@@ -1,10 +1,10 @@
 #setwd('6to Semestre')
 #setwd('Temas Selectos de Matemáticas')
-#setwd('Covid')
+setwd('Covid')
 suppressMessages(library(dplyr))
 suppressMessages(library(verification))
-#cv=read.csv("covid.csv",header=T)
-cv=read.csv("C:/Users/sole-/Downloads/covid-19-master/covid-19-master/covid.csv",header=T)
+cv=read.csv("covid.csv",header=T)
+
 cv <- na.omit(cv)
 cv=cv%>%tbl_df()
 cv=cv%>%filter(as.numeric(RESULTADO)<=1)%>%filter(as.numeric(UCI)<=2)
@@ -61,8 +61,8 @@ index <- sample(1:dim(cv), (dim(cv)/2), replace = F)
 Train <- cv[index,]
 Test <- cv[-index,]
 
-####
-glm1<- glm(UCI~ SEXO+EDAD+NEUMONIA+OBESIDAD+DIABETES+INTUBADO,family="binomial" ,data = Train)
+#########LOGISTIC####
+glm1<- glm(UCI~ NEUMONIA+INTUBADO+DIABETES+ASMA+OBESIDAD+OTRO_CASO,family="binomial" ,data = Train)
 summary(glm1)
 yhat2<- predict(glm1, Test,type="response")
 
@@ -73,7 +73,7 @@ val_mean <- rep(0,91)
 for(i in seq(0.1,1,by=0.01)){
   y=as.integer(yhat2>i)
   y=ifelse(y =="0",1,2)
-  val_mean[size]=mean(y == Test$RESULTADO)
+  val_mean[size]=mean(y == Test$UCI)
   size=size+1
 }
 size=2
@@ -90,8 +90,14 @@ for(i in seq(0.11,1,by=0.01)){
 y=seq(0.1,1,by=0.01)
 plot(y,val_mean,xlab = "iterador", ylab = "valor mean")
 points(b, val_mean[lugar],  col = "orange", lwd = 10)
+###valores
 b
 val_mean[lugar]
+#####ROCPLOT
+roc= ifelse(Test$UCI==1,0,1)
+roc.plot(x = roc, pred =yhat2,
+         threshold = seq(0, max(yhat2), 0.05),
+         plot.thres = c(0.03, 0.05, 0.1, 0.5, 0.9), main="Logistic")
 
 #################### k-folds
 n <- dim(cv)[1]
@@ -104,10 +110,45 @@ for (i in 1:k){
   index = folds == i
   test = cv[index,]
   train = cv[-index,]
-  reg = glm.c =glm(UCI~ SEXO+EDAD+NEUMONIA+OBESIDAD+DIABETES+INTUBADO,family="binomial" ,data = train)
-  y = test$UCI
+  reg = glm.c <- glm(UCI~ NEUMONIA+INTUBADO+DIABETES+ASMA+OBESIDAD+OTRO_CASO,family="binomial" ,data = train)
+  y=test$UCI
   yhat = predict(reg,test,type = "response")
-  res = ifelse(yhat >0.52,2,1) #Si yhat > 0.5 entonces 1, si no 0
+  res = ifelse(yhat >b,2,1) #Si yhat > 0.5 entonces 1, si no 0
+  
+  clasiferror <- mean(y != res)
+  
+  acc[i] = 1 - clasiferror
+}
+mean(acc) #Presicion promedio del modelo
+hist(acc, main = paste("Accuracy using ", k, "- fold CV"))
+boxplot(acc,main="precisión")
+###########LDA#####
+lda1 <- lda(UCI~ NEUMONIA+INTUBADO+DIABETES+ASMA+OBESIDAD+OTRO_CASO,family="binomial" ,data = Train)
+lda1
+yhat1 <- predict(lda1, Test)$class
+yhat1
+
+table(yhat1,Test$UCI)
+mean(yhat1 == Test$UCI)
+yy=predict(lda1, Test)
+roc.plot(x = as.numeric(Test$RESULTADO), pred =yy$posterior[,2],
+         threshold = seq(0, max(as.numeric(yy$posterior[,2])), 0.05),
+         plot.thres = c(0.03, 0.05, 0.1, 0.5, 0.9),main="LDA")
+######kfolds
+n <- dim(cv)[1]
+k <- 10
+
+
+folds <- cut(1:n,k,labels = F)
+acc = rep(0,k) #presicion del modelo
+for (i in 1:k){
+  index = folds == i
+  test = cv[index,]
+  train = cv[-index,]
+  reg = lda(UCI~ NEUMONIA+INTUBADO+DIABETES+ASMA+OBESIDAD+OTRO_CASO,family="binomial" ,data = train)
+  
+  y = test$UCI
+  res = predict(reg, test)$class #Si yhat > 0.5 entonces 1, si no 0
   
   clasiferror <- mean(y != res)
   
@@ -115,7 +156,6 @@ for (i in 1:k){
 }
 mean(acc) #Presicion promedio del modelo
 
-cat("Average Mean Square Error from kCV = ",round(mean(acc),1), "\n")
 hist(acc, main = paste("Accuracy using ", k, "- fold CV"))
-boxplot(acc,main="precisión")
-###########
+boxplot(acc,main="LDA",xlabel="Precisión")
+

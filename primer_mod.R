@@ -1,11 +1,11 @@
 #setwd('6to Semestre')
 #setwd('Temas Selectos de Matemáticas')
-#setwd('Covid')
+setwd('Covid')
 suppressMessages(library(dplyr))
 suppressMessages(library(verification))
-cv=read.csv("C:/Users/sole-/Downloads/covid-19-master/covid-19-master/covid.csv",header=T)
 
-#cv=read.csv("covid.csv",header=T)
+
+cv=read.csv("covid.csv",header=T)
 cv <- na.omit(cv)
 cv=cv%>%tbl_df()
 cv=cv%>%filter(as.numeric(RESULTADO)<=2)
@@ -61,8 +61,9 @@ Train <- cv[index,]
 Test <- cv[-index,]
 
 
-####
-glm1<- glm(RESULTADO~ EDAD+ENTIDAD_RES+SEXO+NEUMONIA+DIABETES+ASMA+EPOC+OTRO_CASO+OBESIDAD+HIPERTENSION+CARDIOVASCULAR+INTUBADO,family="binomial" ,data = Train)
+########################### LOGISTICA
+##########################
+glm1<- glm(RESULTADO~ EDAD+ENTIDAD_RES+SEXO+NEUMONIA+DIABETES+ASMA+EPOC+OTRO_CASO+OBESIDAD+HIPERTENSION+CARDIOVASCULAR+INTUBADO,family=binomial ,data = Train)
 summary(glm1)
 yhat2<- predict(glm1, newdata=Test,type="response")
 #para elegir la mejor y evaluamos los posibles valores, desde 0.1 hasta 1 y vemos cual es el mean menor 
@@ -89,8 +90,18 @@ for(i in seq(0.11,1,by=0.01)){
 y=seq(0.1,1,by=0.01)
 plot(y,val_mean,xlab = "iterador", ylab = "valor mean")
 points(b, val_mean[lugar],  col = "orange", lwd = 10)
+
+#### valores elegidos
 b
 val_mean[lugar]
+####rocplot
+
+roc= ifelse(Test$RESULTADO==1,0,1)
+roc.plot(x = roc, pred =yhat2,
+         threshold = seq(0, max(yhat2), 0.05),
+         plot.thres = c(0.03, 0.05, 0.1, 0.5, 0.9), main="Logistic")
+
+
 
 #################### k-folds
 
@@ -118,6 +129,47 @@ for (i in 1:k){
 }
 mean(acc) #Presicion promedio del modelo
 
-cat("Average Mean Square Error from kCV = ",round(mean(acc),1), "\n")
 hist(acc, main = paste("Accuracy using ", k, "- fold CV"))
 boxplot(acc)
+
+########################## LDA
+##########################LDA#####
+lda1 <- lda(RESULTADO~ EDAD+ENTIDAD_RES+SEXO+NEUMONIA+DIABETES+ASMA+EPOC+OTRO_CASO+OBESIDAD+HIPERTENSION+CARDIOVASCULAR+INTUBADO,family=binomial ,data = Train)
+lda1
+yhat1 <- predict(lda1, Test)$class
+yhat1
+
+table(yhat1,Test$RESULTADO)
+mean(yhat1 == Test$RESULTADO)
+yy=predict(lda1, Test)
+roc.plot(x = as.numeric(Test$RESULTADO), pred =yy$posterior[,2],
+         threshold = seq(0, max(as.numeric(yy$posterior[,2])), 0.05),
+         plot.thres = c(0.03, 0.05, 0.1, 0.5, 0.9),main="LDA")
+######kfolds
+n <- dim(cv)[1]
+k <- 10
+
+
+folds <- cut(1:n,k,labels = F)
+acc = rep(0,k) #presicion del modelo
+for (i in 1:k){
+  index = folds == i
+  test = cv[index,]
+  train = cv[-index,]
+  reg = lda(RESULTADO~ EDAD+ENTIDAD_RES+SEXO+NEUMONIA+DIABETES+ASMA+EPOC+OTRO_CASO+OBESIDAD+HIPERTENSION+CARDIOVASCULAR+INTUBADO,family=binomial ,data = train)
+  
+  y = test$RESULTADO
+  res = predict(reg, test)$class #Si yhat > 0.5 entonces 1, si no 0
+  
+  clasiferror <- mean(y != res)
+  
+  acc[i] = 1 - clasiferror
+}
+mean(acc) #Presicion promedio del modelo
+
+hist(acc, main = paste("Accuracy using ", k, "- fold CV"))
+boxplot(acc,main="LDA",xlabel="Precisión")
+
+#############KNN#####
+
+
