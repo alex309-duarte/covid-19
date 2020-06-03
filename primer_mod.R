@@ -1,10 +1,11 @@
 #setwd('6to Semestre')
 #setwd('Temas Selectos de Matemáticas')
-setwd('Covid')
+#setwd('Covid')
 suppressMessages(library(dplyr))
 suppressMessages(library(verification))
+suppressMessages(library(class))
 
-
+setwd("C:/Users/sole-/Documents/Tecnologia/Sexto semestre/Temas compu/knn")
 cv=read.csv("covid.csv",header=T)
 cv <- na.omit(cv)
 cv=cv%>%tbl_df()
@@ -171,5 +172,22 @@ hist(acc, main = paste("Accuracy using ", k, "- fold CV"))
 boxplot(acc,main="LDA",xlabel="Precisión")
 
 #############KNN#####
-
+end= nrow(cv_covid_positivo)#numero de valores
+mayor=0
+for(n in 1:20){
+  knn.pred <- knn(cbind(Train$EDAD,Train$ENTIDAD_RES,Train$SEXO,Train$NEUMONIA,Train$DIABETES,
+                        Train$ASMA,Train$EPOC,Train$OTRO_CASO,Train$OBESIDAD,Train$HIPERTENSION,
+                        Train$CARDIOVASCULAR,Train$INTUBADO), 
+                  cbind(Test$EDAD,Test$ENTIDAD_RES,Test$SEXO,Test$NEUMONIA,Test$DIABETES,
+                        Test$ASMA,Test$EPOC,Test$OTRO_CASO,Test$OBESIDAD,Test$HIPERTENSION,
+                        Test$CARDIOVASCULAR,Test$INTUBADO), Train$RESULTADO, k=n)
+  error= mean(Test$RESULTADO == knn.pred)
+  if(error>mayor){
+    mayor=error
+    k_best=n
+  }
+}
+print("la mejor k fue: ")
+k_best
+mayor   
 
