@@ -4,7 +4,7 @@
 suppressMessages(library(dplyr))
 suppressMessages(library(verification))
 suppressMessages(library(class))
-
+library(tree)
 setwd("C:/Users/sole-/Documents/Tecnologia/Sexto semestre/Temas compu/knn")
 cv=read.csv("covid.csv",header=T)
 cv <- na.omit(cv)
@@ -182,3 +182,17 @@ for(n in 1:20){
 print("la mejor k fue: ")
 k_best
 mayor   
+######## desicion tree####
+tree.muerte = tree(FECHA_DEF~ SEXO+NEUMONIA+OBESIDAD+HIPERTENSION+DIABETES+EDAD+INTUBADO+UCI+EPOC+OTRO_CASO+OTRA_CON,data = Train)
+summary(tree.muerte)
+plot(tree.muerte)
+text(tree.muerte, pretty=0)
+tree.pred = predict(tree.muerte, Test, type="class")
+table(tree.pred,Test$FECHA_DEF)
+mean(tree.pred==Test$FECHA_DEF)
+
+cv.tree.muerte = cv.tree(tree.muerte, FUN = prune.misclass)
+names(cv.tree.muerte)
+cv.tree.muerte
+plot(cv.tree.muerte$size, cv.tree.muerte$dev,type="b")
+plot(cv.tree.muerte$k,cv.tree.muerte$dev,type="b")
