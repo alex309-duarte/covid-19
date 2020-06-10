@@ -184,8 +184,8 @@ for(n in 1:20){
 print("la mejor k fue: ")
 k_best
 mayor   
-plot(rep(1:20),knn_val,xlab = "valor k", ylab = "valor mean")
-points(k_best, mayor,  col = "orange", lwd = 10)
+boxplot(knn_val)
+
 ######## desicion tree####
 tree.muerte = tree(FECHA_DEF~ SEXO+NEUMONIA+OBESIDAD+HIPERTENSION+DIABETES+EDAD+INTUBADO+UCI+EPOC+OTRO_CASO+OTRA_CON,data = Train)
 summary(tree.muerte)
@@ -200,3 +200,27 @@ names(cv.tree.muerte)
 cv.tree.muerte
 plot(cv.tree.muerte$size, cv.tree.muerte$dev,type="b")
 plot(cv.tree.muerte$k,cv.tree.muerte$dev,type="b")
+#######kfolds
+n <- dim(cv)[1]
+k <- 10
+
+
+folds <- cut(1:n,k,labels = F)
+acc = rep(0,k) #presicion del modelo
+for (i in 1:k){
+  index = folds == i
+  test = cv[index,]
+  train = cv[-index,]
+  reg =tree(FECHA_DEF~ SEXO+NEUMONIA+OBESIDAD+HIPERTENSION+DIABETES+EDAD+INTUBADO+UCI+EPOC+OTRO_CASO+OTRA_CON,data = train)
+  
+  y = test$FECHA_DEF
+  res = predict(reg, test, type="class") #Si yhat > 0.5 entonces 1, si no 0
+  
+  clasiferror <- mean(y != res)
+  
+  acc[i] = 1 - clasiferror
+}
+mean(acc) #Presicion promedio del modelo
+
+hist(acc, main = paste("Accuracy using ", k, "- fold CV"))
+boxplot(acc,main="Árbol",xlabel="Precisión")
