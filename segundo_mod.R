@@ -157,6 +157,7 @@ mean(acc) #Presicion promedio del modelo
 hist(acc, main = paste("Accuracy using ", k, "- fold CV"))
 boxplot(acc,main="LDA",xlabel="Precisión")
 #############KNN#####
+knn_val <- rep(1:20)
 end= nrow(cv_covid_positivo)#numero de valores
 mayor=0
 for(n in 1:20){
@@ -165,7 +166,7 @@ for(n in 1:20){
                   cbind(Test$NEUMONIA,Test$DIABETES,Test$INTUBADO,Test$ASMA,
                         Test$OBESIDAD,Test$OTRO_CASO), Train$UCI, k=n)
   error= mean(Test$UCI == knn.pred)
-  ll=mean(Test$UCI == knn.pred)
+  knn_val[n]=error
   if(error>mayor){
     mayor=error
     k_best=n
@@ -174,7 +175,8 @@ for(n in 1:20){
 print("la mejor k fue: ")
 k_best
 mayor
-
+plot(rep(1:20),knn_val,xlab = "valor k", ylab = "valor mean")
+points(k_best, mayor,  col = "orange", lwd = 10)
 #########decision tree#####
 tree.UCI = tree(UCI~ NEUMONIA+INTUBADO+DIABETES+ASMA+OBESIDAD+OTRO_CASO ,data = Train)
 summary(tree.UCI)
