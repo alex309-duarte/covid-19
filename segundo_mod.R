@@ -1,9 +1,10 @@
 #setwd('6to Semestre')
 #setwd('Temas Selectos de Matemáticas')
-#setwd('Covid')
+setwd('Covid')
 suppressMessages(library(dplyr))
 suppressMessages(library(verification))
 suppressMessages(library(class))
+library(tree)
 
 setwd("C:/Users/sole-/Documents/Tecnologia/Sexto semestre/Temas compu/knn")
 cv=read.csv("covid.csv",header=T)
@@ -96,11 +97,7 @@ points(b, val_mean[lugar],  col = "orange", lwd = 10)
 ###valores
 b
 val_mean[lugar]
-#####ROCPLOT
-roc= ifelse(Test$UCI==1,0,1)
-roc.plot(x = roc, pred =yhat2,
-         threshold = seq(0, max(yhat2), 0.05),
-         plot.thres = c(0.03, 0.05, 0.1, 0.5, 0.9), main="Logistic")
+
 
 #################### k-folds
 n <- dim(cv)[1]
@@ -133,10 +130,8 @@ yhat1
 
 table(yhat1,Test$UCI)
 mean(yhat1 == Test$UCI)
-yy=predict(lda1, Test)
-roc.plot(x = as.numeric(Test$RESULTADO), pred =yy$posterior[,2],
-         threshold = seq(0, max(as.numeric(yy$posterior[,2])), 0.05),
-         plot.thres = c(0.03, 0.05, 0.1, 0.5, 0.9),main="LDA")
+
+
 ######kfolds
 n <- dim(cv)[1]
 k <- 10
@@ -170,6 +165,7 @@ for(n in 1:20){
                   cbind(Test$NEUMONIA,Test$DIABETES,Test$INTUBADO,Test$ASMA,
                         Test$OBESIDAD,Test$OTRO_CASO), Train$UCI, k=n)
   error= mean(Test$UCI == knn.pred)
+  ll=mean(Test$UCI == knn.pred)
   if(error>mayor){
     mayor=error
     k_best=n
@@ -177,6 +173,19 @@ for(n in 1:20){
 }
 print("la mejor k fue: ")
 k_best
-mayor   
+mayor
 
+#########decision tree#####
+tree.UCI = tree(UCI~ NEUMONIA+INTUBADO+DIABETES+ASMA+OBESIDAD+OTRO_CASO ,data = Train)
+summary(tree.UCI)
+plot(tree.UCI)
+text(tree.UCI, pretty=0)
+tree.pred = predict(tree.UCI, Test, type="class")
+table(tree.pred,Test$UCI)
+mean(tree.pred==Test$UCI)
 
+cv.tree.uci = cv.tree(tree.UCI, FUN = prune.misclass)
+names(cv.tree.uci)
+cv.tree.uci
+plot(cv.tree.uci$size, cv.tree.uci$dev,type="b")
+plot(cv.tree.uci$k,cv.tree.uci$dev,type="b")
